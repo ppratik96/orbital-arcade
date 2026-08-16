@@ -7,6 +7,12 @@
 
 An arcade suite designed specifically for the **Waveshare ESP32-S3 Touch AMOLED 1.8"** watch board, featuring **gyro-steered motion vectoring** and **touch controls**.
 
+<p align="center">
+  <img src="assets/homescreen.png" width="220" alt="Orbital Arcade Homescreen" />
+  <img src="assets/rotatetris.png" width="220" alt="Rotatetris Game" />
+  <img src="assets/rosnake.png" width="220" alt="RoSnake Game" />
+</p>
+
 ---
 
 ## 🎮 Included Games

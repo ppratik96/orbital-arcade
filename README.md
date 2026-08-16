@@ -1,8 +1,8 @@
 # Orbital Arcade: Rotatetris & RoSnake
 
 [![Board](https://img.shields.io/badge/Board-Waveshare%20ESP32--S3%20AMOLED%201.8%22-cyan.svg)](https://www.waveshare.com/esp32-s3-touch-amoled-1.8.htm)
-[![Framework](https://img.shields.io/badge/Platform-App--Pixels-orange.svg)](https://app-pixels.com)
-[![Storage](https://img.shields.io/badge/Storage-Flash%20NVS%20(No%20SD%20Required)-blue.svg)](#)
+[![Platform](https://img.shields.io/badge/Platform-App--Pixels-orange.svg)](https://app-pixels.com)
+[![GitHub](https://img.shields.io/badge/GitHub-ppratik96%2Forbital--arcade-181717.svg?logo=github)](https://github.com/ppratik96/orbital-arcade)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 An arcade suite designed specifically for the **Waveshare ESP32-S3 Touch AMOLED 1.8"** watch board, featuring **gyro-steered motion vectoring** and **touch controls**.

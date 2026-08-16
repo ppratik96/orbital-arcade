@@ -607,71 +607,21 @@ void GameEngine::drawPlayfieldBackground() {
     int16_t startX = PLAYFIELD_X;
     int16_t startY = PLAYFIELD_Y;
     int16_t totalSize = GRID_COLS * BLOCK_SIZE; // 338 px
-    int16_t cornerPx = CORNER_SIZE * BLOCK_SIZE; // 3 * 26 = 78 px
-    int16_t wMin = 3 * BLOCK_SIZE;  // 78 px
-    int16_t wMax = 10 * BLOCK_SIZE; // 260 px
 
     // 1. Fill entire arena black
     Display.fillRect(startX, startY, totalSize, totalSize, COLOR_BG);
 
-    // 2. Fill the 4 solid 3x3 corner quadrants (78x78 px each)
-    Display.fillRect(startX, startY, cornerPx, cornerPx, COLOR_WALL);
-    Display.fillRect(startX + wMax, startY, cornerPx, cornerPx, COLOR_WALL);
-    Display.fillRect(startX, startY + wMax, cornerPx, cornerPx, COLOR_WALL);
-    Display.fillRect(startX + wMax, startY + wMax, cornerPx, cornerPx, COLOR_WALL);
-
-    // 3. Draw grid lines on all 13x13 cells
+    // 2. Render all 13x13 grid tiles, corner walls, borders, and center core using unified eraseTile pipeline
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
-            int16_t px = startX + (c * BLOCK_SIZE);
-            int16_t py = startY + (r * BLOCK_SIZE);
-            if (_board[r][c] == -1) {
-                Display.drawRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_WALL_GRID);
-            } else if (r >= CORE_R_MIN && r <= CORE_R_MAX && c >= CORE_C_MIN && c <= CORE_C_MAX) {
-                // Interior grid of the solid core box
-                Display.fillRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_CORE_FILL);
-                Display.drawRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_CORE_GRID);
-            } else {
-                Display.drawRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_GRID_LINE);
-            }
+            eraseTile(r, c);
         }
     }
 
-    // 4. Outer Cyan Border enclosing the entire playfield (2px thick)
+    // 3. Outer Cyan Border enclosing the entire playfield (3px thick)
     Display.drawRect(startX - 2, startY - 2, totalSize + 4, totalSize + 4, COLOR_WALL_BORDER);
     Display.drawRect(startX - 1, startY - 1, totalSize + 2, totalSize + 2, COLOR_WALL_BORDER);
-
-    // 5. Inset Vibrant Cyan T-bar borders separating 3x3 corner walls from playable wells (2px thick)
-    // Top-Left Corner Inner Boundaries
-    Display.fillRect(startX + wMin, startY, 2, wMin, COLOR_WALL_BORDER);
-    Display.fillRect(startX, startY + wMin, wMin, 2, COLOR_WALL_BORDER);
-
-    // Top-Right Corner Inner Boundaries
-    Display.fillRect(startX + wMax - 1, startY, 2, wMin, COLOR_WALL_BORDER);
-    Display.fillRect(startX + wMax, startY + wMin, wMin, 2, COLOR_WALL_BORDER);
-
-    // Bottom-Left Corner Inner Boundaries
-    Display.fillRect(startX, startY + wMax - 1, wMin, 2, COLOR_WALL_BORDER);
-    Display.fillRect(startX + wMin, startY + wMax, 2, wMin, COLOR_WALL_BORDER);
-
-    // Bottom-Right Corner Inner Boundaries
-    Display.fillRect(startX + wMax - 1, startY + wMax, 2, wMin, COLOR_WALL_BORDER);
-    Display.fillRect(startX + wMax, startY + wMax - 1, wMin, 2, COLOR_WALL_BORDER);
-
-    // 6. Draw Solid 3x3 Central Core Box (rows 5..7, cols 5..7) as the Visible Spawn Emitter & Overflow Ceiling (2px thick)
-    int16_t coreX = startX + (5 * BLOCK_SIZE);
-    int16_t coreY = startY + (5 * BLOCK_SIZE);
-    int16_t coreSize = 3 * BLOCK_SIZE; // 78 px
-    Display.fillRect(coreX, coreY, coreSize, coreSize, COLOR_CORE_FILL);
-    for (int r = 5; r <= 7; r++) {
-        for (int c = 5; c <= 7; c++) {
-            int16_t px = startX + (c * BLOCK_SIZE);
-            int16_t py = startY + (r * BLOCK_SIZE);
-            Display.drawRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_CORE_GRID);
-        }
-    }
-    Display.drawRect(coreX, coreY, coreSize, coreSize, COLOR_CORE_BORDER);
-    Display.drawRect(coreX + 1, coreY + 1, coreSize - 2, coreSize - 2, COLOR_CORE_BORDER);
+    Display.drawRect(startX, startY, totalSize, totalSize, COLOR_WALL_BORDER);
 }
 
 void GameEngine::drawHUD() {

@@ -9,21 +9,17 @@ DisplayAMOLED Display;
 #define TCA9554_CONFIG_REG  0x03
 
 static void initIOExpander() {
-    // On V2 board, Pins 0, 1, 2, 6 are LCD Power/Reset/Touch/AMOLED Enable
-    // Set Pins 0, 1, 2, 6 as OUTPUT (0 = Output)
     Wire.beginTransmission(IO_EXPANDER_ADDR);
     Wire.write(TCA9554_CONFIG_REG);
     Wire.write(0b10111000); // Pins 0, 1, 2, 6 output (bits 0,1,2,6 = 0)
     Wire.endTransmission();
 
-    // Pulse Reset & Power: Pull Low
     Wire.beginTransmission(IO_EXPANDER_ADDR);
     Wire.write(TCA9554_OUTPUT_REG);
     Wire.write(0b00000000); // Pins 0, 1, 2, 6 LOW
     Wire.endTransmission();
     delay(30);
 
-    // Release Reset & Enable Power: Pull High
     Wire.beginTransmission(IO_EXPANDER_ADDR);
     Wire.write(TCA9554_OUTPUT_REG);
     Wire.write(0b01000111); // Pins 0, 1, 2, 6 HIGH (bits 0,1,2,6 = 1)
@@ -34,10 +30,8 @@ static void initIOExpander() {
 DisplayAMOLED::DisplayAMOLED() : _bus(nullptr), _gfx(nullptr) {}
 
 bool DisplayAMOLED::begin() {
-    // 1. Reset and Power Display, Touch, and AMOLED Enable via IO Expander
     initIOExpander();
 
-    // 2. Initialize Hardware QSPI Bus
     _bus = new Arduino_ESP32QSPI(
         LCD_CS_PIN,   /* CS = 12 */
         LCD_SCK_PIN,  /* SCK = 11 */
@@ -47,7 +41,6 @@ bool DisplayAMOLED::begin() {
         LCD_D3_PIN    /* D3 = 7 */
     );
 
-    // 3. Initialize V2 AMOLED Display Panel (CO5300 with 16px col offset)
     _gfx = new Arduino_CO5300(
         _bus,
         GFX_NOT_DEFINED, /* RST = -1 (managed by IO Expander) */
@@ -61,21 +54,25 @@ bool DisplayAMOLED::begin() {
     );
 
     if (!_gfx->begin()) {
-        // Fallback to SH8601 if CO5300 failed
         delete _gfx;
         _gfx = new Arduino_SH8601(
             _bus,
             GFX_NOT_DEFINED,
             0,
             SCREEN_WIDTH,
-            SCREEN_HEIGHT
+            SCREEN_HEIGHT,
+            16,
+            0,
+            0,
+            0
         );
-        _gfx->begin();
+        if (!_gfx->begin()) {
+            return false;
+        }
     }
 
-    setBrightness(255);
-    fillScreen(COLOR_BG);
-
+    setBrightness(220);
+    fillScreen(0x0000);
     return true;
 }
 
@@ -160,24 +157,23 @@ void DisplayAMOLED::drawBeveledBlock(int16_t x, int16_t y, int16_t size, uint16_
     if (!_gfx) return;
 
     if (isGhost) {
-        // Ghost block: dark translucent fill + crisp border
         _gfx->fillRect(x + 1, y + 1, size - 2, size - 2, COLOR_GHOST_FILL);
         drawRect(x, y, size, size, COLOR_GHOST_EDGE);
         return;
     }
 
-    // 1. Black outer border around the block (guarantees sharp grid lines between blocks)
+    // 1. Outer 1px black border
     drawRect(x, y, size, size, 0x0000);
 
-    // 2. Base colored body inside the 1px black border
+    // 2. Base block fill
     _gfx->fillRect(x + 1, y + 1, size - 2, size - 2, color);
 
-    // 3. Subtle 1-pixel highlight on top and left
-    uint16_t highlight = 0xFFFF; // Bright white highlight
+    // 3. Highlight on top and left
+    uint16_t highlight = 0xFFFF;
     _gfx->fillRect(x + 1, y + 1, size - 2, 1, highlight);
     _gfx->fillRect(x + 1, y + 1, 1, size - 2, highlight);
 
-    // 4. Subtle 1-pixel shadow on bottom and right
+    // 4. Shadow on bottom and right
     uint16_t shadow = 0x0000;
     _gfx->fillRect(x + 1, y + size - 2, size - 2, 1, shadow);
     _gfx->fillRect(x + size - 2, y + 1, 1, size - 2, shadow);

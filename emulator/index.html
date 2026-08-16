@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbital Tetris — Waveshare AMOLED Emulator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #08090e;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            gap: 40px;
+        }
+
+        /* Device Bezel Simulator */
+        .device-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .device-bezel {
+            width: 400px;
+            height: 480px;
+            background: linear-gradient(145deg, #1f232b, #111318);
+            border-radius: 40px;
+            padding: 16px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8), 0 0 0 2px #333945, inset 0 2px 4px rgba(255,255,255,0.1);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .screen-container {
+            width: 368px;
+            height: 448px;
+            background-color: #030308;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.9);
+            border: 1px solid #1a1d26;
+            cursor: pointer;
+        }
+
+        /* Physical BOOT Button simulation on side */
+        .boot-button {
+            position: absolute;
+            right: -12px;
+            top: 140px;
+            width: 10px;
+            height: 44px;
+            background: #444c5c;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .boot-button:active {
+            transform: translateX(-3px);
+            background: #00ffff;
+        }
+
+        /* Game Layers */
+        #world-layer {
+            position: absolute;
+            top: 48px;
+            left: 13px;
+            width: 342px;
+            height: 342px;
+            transform-origin: center center;
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* AMOLED HUD */
+        .amoled-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 16px;
+            background: #030308;
+            z-index: 10;
+        }
+        .hud-score {
+            font-size: 16px;
+            font-weight: 800;
+            color: #00ffff;
+            letter-spacing: 1px;
+        }
+        .hud-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #00ffff;
+            letter-spacing: 2px;
+            opacity: 0.8;
+        }
+
+        /* AMOLED Footer Help */
+        .amoled-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 58px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #030308;
+            z-index: 10;
+            gap: 3px;
+        }
+        .footer-line1 {
+            font-size: 9px;
+            font-weight: 600;
+            color: #667;
+            letter-spacing: 0.5px;
+        }
+        .footer-line2 {
+            font-size: 10px;
+            font-weight: 700;
+            color: #00ffff;
+            letter-spacing: 0.8px;
+        }
+
+        /* Start / Game Over Overlay */
+        .overlay-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 3, 8, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            gap: 16px;
+            text-align: center;
+            padding: 24px;
+        }
+        .overlay-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: #00ffff;
+            letter-spacing: 4px;
+        }
+        .overlay-subtitle {
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 6px;
+        }
+        .overlay-desc {
+            font-size: 11px;
+            color: #889;
+            line-height: 1.5;
+            max-width: 260px;
+        }
+        .start-btn {
+            background: #00ffff;
+            color: #030308;
+            font-weight: 800;
+            font-size: 14px;
+            padding: 12px 32px;
+            border-radius: 8px;
+            letter-spacing: 2px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0,255,255,0.4);
+            margin-top: 10px;
+        }
+        .start-btn:hover {
+            background: #66ffff;
+            box-shadow: 0 0 30px rgba(0,255,255,0.7);
+        }
+
+        /* Telemetry Side Panel */
+        .telemetry-panel {
+            width: 380px;
+            background: #11141c;
+            border: 1px solid #232836;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .panel-header {
+            font-size: 16px;
+            font-weight: 800;
+            color: #00ffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #232836;
+            padding-bottom: 10px;
+        }
+        .control-group {
+            background: #181d28;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .key-badge {
+            background: #283144;
+            color: #00ffff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 700;
+        }
+        .log-box {
+            height: 160px;
+            background: #080a0f;
+            border: 1px solid #1a202c;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            color: #00e5ff;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .log-entry {
+            line-height: 1.3;
+        }
+        .log-entry.event { color: #ffe600; }
+        .log-entry.rotate { color: #ff0055; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <!-- Device Viewport -->
+    <div class="device-wrapper">
+        <div class="device-bezel">
+            <div class="boot-button" title="BOOT Button (Space / Hard Drop)" onclick="triggerHardDrop()"></div>
+
+            <div class="screen-container" id="screen">
+                <!-- AMOLED HUD -->
+                <div class="amoled-hud">
+                    <div class="hud-score" id="score-display">SCORE: 0</div>
+                    <div class="hud-title">ORBITAL TETRIS</div>
+                </div>
+
+                <!-- World Rotating Layer (Cross Grid 19x19) -->
+                <div id="world-layer">
+                    <canvas id="bg-canvas" width="342" height="342"></canvas>
+                    <canvas id="game-canvas" width="342" height="342"></canvas>
+                </div>
+
+                <!-- Footer Help -->
+                <div class="amoled-footer">
+                    <div class="footer-line1">DRAG &lt; &gt; TO MOVE | SWIPE v DROP</div>
+                    <div class="footer-line2">TAP L/R OR Q/E TO ROTATE WORLD</div>
+                </div>
+
+                <!-- Start Screen Overlay -->
+                <div class="overlay-screen" id="start-screen">
+                    <div class="overlay-title">ORBITAL</div>
+                    <div class="overlay-subtitle">T E T R I S</div>
+                    <div class="overlay-desc">
+                        STACK BLOCKS IN ALL 4 WELLS<br>
+                        <span style="color:#667;">FALLING PIECES DO NOT ROTATE</span><br>
+                        <span style="color:#00ffff;">SPIN WORLD WITH TILT OR TAP</span>
+                    </div>
+                    <button class="start-btn" onclick="startGame()">INITIALIZE</button>
+                </div>
+
+                <!-- Game Over Overlay -->
+                <div class="overlay-screen" id="game-over-screen" style="display:none;">
+                    <div class="overlay-title" style="color:#ff3366;">SYSTEM HALT</div>
+                    <div class="hud-score" id="final-score" style="font-size:20px; color:#fff;">SCORE: 0</div>
+                    <div style="font-size:12px; color:#00ffff;" id="high-score-display">BEST: 0</div>
+                    <button class="start-btn" onclick="startGame()">REBOOT</button>
+                </div>
+            </div>
+        </div>
+        <div style="font-size:12px; color:#667; text-align:center;">Waveshare 1.8" AMOLED Simulator (368 × 448)</div>
+    </div>
+
+    <!-- Live Telemetry & Control Panel -->
+    <div class="telemetry-panel">
+        <div class="panel-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            Live Game Telemetry & Inspector
+        </div>
+
+        <div class="control-group">
+            <div style="font-weight:700; color:#fff; margin-bottom:4px;">Interactive Controls:</div>
+            <div class="control-row"><span>Move Piece Left / Right:</span> <span class="key-badge">← / →</span> or <span class="key-badge">A / D</span></div>
+            <div class="control-row"><span>Soft Drop Piece:</span> <span class="key-badge">↓</span> or <span class="key-badge">S</span></div>
+            <div class="control-row"><span>Hard Drop (BOOT button):</span> <span class="key-badge">Space</span> or Click Side Pin</div>
+            <div class="control-row"><span>Rotate World CCW (Left):</span> <span class="key-badge">Q</span> or Click Left Half</div>
+            <div class="control-row"><span>Rotate World CW (Right):</span> <span class="key-badge">E</span> or Click Right Half</div>
+        </div>
+
+        <div class="control-group">
+            <div class="control-row"><span>Active State:</span> <span id="state-val" style="color:#00ffff; font-weight:700;">START_MENU</span></div>
+            <div class="control-row"><span>Piece Type:</span> <span id="piece-val" style="font-weight:700;">-</span></div>
+            <div class="control-row"><span>Falling Pos (X, Y):</span> <span id="pos-val" style="font-weight:700;">(7, 4)</span></div>
+            <div class="control-row"><span>Fall Interval:</span> <span id="speed-val" style="font-weight:700;">800 ms</span></div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; color:#889;">Real-Time Event Stream:</div>
+        <div class="log-box" id="event-log">
+            <div class="log-entry">[SYSTEM] AMOLED Emulator Initialized</div>
+        </div>
+    </div>
+
+    <script>
+        const COLS = 19;
+        const ROWS = 19;
+        const BLOCK_SIZE = 18; // 18px * 19 = 342px
+
+        const bgCanvas = document.getElementById('bg-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        const gameCanvas = document.getElementById('game-canvas');
+        const gameCtx = gameCanvas.getContext('2d');
+        const worldLayer = document.getElementById('world-layer');
+
+        const PIECE_COLORS = [
+            null,
+            '#00ffff', // 1: I
+            '#0055ff', // 2: J
+            '#ff8800', // 3: L
+            '#ffff00', // 4: O
+            '#00ff66', // 5: S
+            '#aa00ff', // 6: T
+            '#ff2244'  // 7: Z
+        ];
+
+        const SHAPES = [
+            [],
+            [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], // I
+            [[2,0,0],[2,2,2],[0,0,0]],                 // J
+            [[0,0,3],[3,3,3],[0,0,0]],                 // L
+            [[4,4],[4,4]],                             // O
+            [[0,5,5],[5,5,0],[0,0,0]],                 // S
+            [[0,6,0],[6,6,6],[0,0,0]],                 // T
+            [[7,7,0],[0,7,7],[0,0,0]]                  // Z
+        ];
+
+        let board = [];
+        let score = 0;
+        let highScore = 0;
+        let dropCounter = 0;
+        let dropInterval = 800;
+        let lastTime = 0;
+        let isGameOver = false;
+        let isPlaying = false;
+        let isRotating = false;
+
+        let currentPiece = { matrix: [], x: 0, y: 0, typeId: 0, color: '' };
+
+        function logEvent(msg, type = '') {
+            const logBox = document.getElementById('event-log');
+            const div = document.createElement('div');
+            div.className = 'log-entry ' + type;
+            div.innerText = `[${new Date().toISOString().substring(14,19)}] ${msg}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function createEmptyBoard() {
+            let b = Array.from({length: ROWS}, () => Array(COLS).fill(0));
+            // 4 solid 5x5 corners (-1)
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (r < 5 && c < 5) b[r][c] = -1;
+                    else if (r < 5 && c > 13) b[r][c] = -1;
+                    else if (r > 13 && c < 5) b[r][c] = -1;
+                    else if (r > 13 && c > 13) b[r][c] = -1;
+                }
+            }
+            return b;
+        }
+
+        function drawBackground() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] === -1) {
+                        bgCtx.fillStyle = '#080812';
+                        bgCtx.fillRect(c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                        bgCtx.strokeStyle = '#10121a';
+                        bgCtx.strokeRect(c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    } else {
+                        bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                        bgCtx.strokeRect(c * BLOCK_SIZE, r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+                    }
+                }
+            }
+
+            // Outer cyan borders
+            bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.35)';
+            bgCtx.lineWidth = 2;
+            
+            // Top-Left Wall
+            bgCtx.beginPath(); bgCtx.moveTo(5*BLOCK_SIZE, 0); bgCtx.lineTo(5*BLOCK_SIZE, 5*BLOCK_SIZE); bgCtx.lineTo(0, 5*BLOCK_SIZE); bgCtx.stroke();
+            // Top-Right Wall
+            bgCtx.beginPath(); bgCtx.moveTo(14*BLOCK_SIZE, 0); bgCtx.lineTo(14*BLOCK_SIZE, 5*BLOCK_SIZE); bgCtx.lineTo(19*BLOCK_SIZE, 5*BLOCK_SIZE); bgCtx.stroke();
+            // Bottom-Left Wall
+            bgCtx.beginPath(); bgCtx.moveTo(0, 14*BLOCK_SIZE); bgCtx.lineTo(5*BLOCK_SIZE, 14*BLOCK_SIZE); bgCtx.lineTo(5*BLOCK_SIZE, 19*BLOCK_SIZE); bgCtx.stroke();
+            // Bottom-Right Wall
+            bgCtx.beginPath(); bgCtx.moveTo(19*BLOCK_SIZE, 14*BLOCK_SIZE); bgCtx.lineTo(14*BLOCK_SIZE, 14*BLOCK_SIZE); bgCtx.lineTo(14*BLOCK_SIZE, 19*BLOCK_SIZE); bgCtx.stroke();
+        }
+
+        function drawBlock(ctx, x, y, color, isGhost = false) {
+            ctx.fillStyle = isGhost ? 'rgba(255, 255, 255, 0.15)' : color;
+            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+            
+            if (!isGhost) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, 2);
+                ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, 2, BLOCK_SIZE);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(x * BLOCK_SIZE, (y + 1) * BLOCK_SIZE - 2, BLOCK_SIZE, 2);
+                ctx.fillRect((x + 1) * BLOCK_SIZE - 2, y * BLOCK_SIZE, 2, BLOCK_SIZE);
+            }
+            ctx.strokeStyle = isGhost ? 'rgba(255, 255, 255, 0.3)' : '#000';
+            ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        }
+
+        function drawBoard() {
+            gameCtx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c] > 0) {
+                        drawBlock(gameCtx, c, r, PIECE_COLORS[board[r][c]]);
+                    }
+                }
+            }
+
+            if (isPlaying && !isGameOver) {
+                // Ghost
+                let ghostY = currentPiece.y;
+                while (!collides(0, ghostY - currentPiece.y + 1, currentPiece.matrix)) {
+                    ghostY++;
+                }
+                currentPiece.matrix.forEach((row, y) => {
+                    row.forEach((val, x) => {
+                        if (val !== 0) {
+                            drawBlock(gameCtx, currentPiece.x + x, ghostY + y, currentPiece.color, true);
+                        }
+                    });
+                });
+
+                // Active Piece
+                currentPiece.matrix.forEach((row, y) => {
+                    row.forEach((val, x) => {
+                        if (val !== 0) {
+                            drawBlock(gameCtx, currentPiece.x + x, currentPiece.y + y, currentPiece.color);
+                        }
+                    });
+                });
+
+                document.getElementById('pos-val').innerText = `(${currentPiece.x}, ${currentPiece.y})`;
+            }
+        }
+
+        function collides(offsetX, offsetY, matrix) {
+            for (let y = 0; y < matrix.length; y++) {
+                for (let x = 0; x < matrix[y].length; x++) {
+                    if (matrix[y][x] !== 0) {
+                        let newX = currentPiece.x + x + offsetX;
+                        let newY = currentPiece.y + y + offsetY;
+
+                        if (newX < 0 || newX >= COLS || newY >= ROWS) return true;
+                        if (newY >= 0 && board[newY][newX] !== 0) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function spawnPiece() {
+            const typeId = Math.floor(Math.random() * 7) + 1;
+            currentPiece.matrix = SHAPES[typeId].map(row => [...row]);
+            currentPiece.typeId = typeId;
+            currentPiece.color = PIECE_COLORS[typeId];
+            currentPiece.x = 7;
+            currentPiece.y = 4;
+
+            const names = ['', 'I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+            document.getElementById('piece-val').innerText = `${names[typeId]} (ID: ${typeId})`;
+
+            if (collides(0, 0, currentPiece.matrix)) {
+                currentPiece.y--;
+                if (collides(0, 0, currentPiece.matrix)) {
+                    gameOver();
+                }
+            }
+        }
+
+        function merge() {
+            currentPiece.matrix.forEach((row, y) => {
+                row.forEach((val, x) => {
+                    if (val !== 0) {
+                        let by = currentPiece.y + y;
+                        let bx = currentPiece.x + x;
+                        if (by >= 0 && by < ROWS && bx >= 0 && bx < COLS) {
+                            board[by][bx] = val;
+                        }
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            for (let r = 18; r >= 5; r--) {
+                let isFull = true;
+                for (let c = 5; c <= 13; c++) {
+                    if (board[r][c] <= 0) {
+                        isFull = false;
+                        break;
+                    }
+                }
+
+                if (isFull) {
+                    linesCleared++;
+                    for (let y = r; y >= 5; y--) {
+                        for (let c = 5; c <= 13; c++) {
+                            let aboveY = y - 1;
+                            if (aboveY >= 5 && board[aboveY][c] !== -1) {
+                                board[y][c] = board[aboveY][c];
+                            } else {
+                                board[y][c] = 0;
+                            }
+                        }
+                    }
+                    r++;
+                }
+            }
+
+            if (linesCleared > 0) {
+                const multi = [0, 100, 300, 500, 800];
+                score += multi[linesCleared] || (linesCleared * 200);
+                document.getElementById('score-display').innerText = `SCORE: ${score}`;
+                logEvent(`LINE CLEAR x${linesCleared}! Score: ${score}`, 'event');
+                drawBoard();
+            }
+        }
+
+        function rotateWorld(direction) {
+            if (isRotating || !isPlaying || isGameOver) return;
+            isRotating = true;
+
+            logEvent(`WORLD ROTATE: ${direction.toUpperCase()}`, 'rotate');
+
+            worldLayer.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            worldLayer.style.transform = direction === 'cw' ? 'rotate(90deg)' : 'rotate(-90deg)';
+
+            setTimeout(() => {
+                let newBoard = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+                for(let r = 0; r < ROWS; r++) {
+                    for(let c = 0; c < COLS; c++) {
+                        if (direction === 'cw') {
+                            newBoard[c][COLS - 1 - r] = board[r][c];
+                        } else {
+                            newBoard[ROWS - 1 - c][r] = board[r][c];
+                        }
+                    }
+                }
+                board = newBoard;
+
+                worldLayer.style.transition = 'none';
+                worldLayer.style.transform = 'rotate(0deg)';
+                drawBoard();
+
+                // Align active piece to vertical falling chute
+                if (currentPiece.x < 5) currentPiece.x = 5;
+                if (currentPiece.x + currentPiece.matrix[0].length > 14) {
+                    currentPiece.x = 14 - currentPiece.matrix[0].length;
+                }
+
+                // Anti-Crush
+                while (collides(0, 0, currentPiece.matrix)) {
+                    currentPiece.y--;
+                }
+
+                setTimeout(() => {
+                    isRotating = false;
+                }, 50);
+            }, 400);
+        }
+
+        function movePiece(dx) {
+            if (!isPlaying || isGameOver || isRotating) return;
+            if (!collides(dx, 0, currentPiece.matrix)) {
+                currentPiece.x += dx;
+                drawBoard();
+            }
+        }
+
+        function drop() {
+            if (!isPlaying || isGameOver || isRotating) return;
+            if (!collides(0, 1, currentPiece.matrix)) {
+                currentPiece.y++;
+            } else {
+                merge();
+                drawBoard();
+                clearLines();
+                spawnPiece();
+            }
+            dropCounter = 0;
+            drawBoard();
+        }
+
+        function triggerHardDrop() {
+            if (!isPlaying || isGameOver || isRotating) return;
+            logEvent('BOOT / Space: HARD DROP', 'event');
+            while (!collides(0, 1, currentPiece.matrix)) {
+                currentPiece.y++;
+            }
+            merge();
+            drawBoard();
+            clearLines();
+            spawnPiece();
+            dropCounter = 0;
+            drawBoard();
+        }
+
+        function startGame() {
+            board = createEmptyBoard();
+            score = 0;
+            isGameOver = false;
+            isPlaying = true;
+            isRotating = false;
+            dropCounter = 0;
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            document.getElementById('score-display').innerText = 'SCORE: 0';
+            document.getElementById('state-val').innerText = 'PLAYING';
+
+            drawBackground();
+            spawnPiece();
+            drawBoard();
+            logEvent('Game Started: STATE_PLAYING', 'event');
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            isGameOver = true;
+            if (score > highScore) highScore = score;
+
+            document.getElementById('final-score').innerText = `SCORE: ${score}`;
+            document.getElementById('high-score-display').innerText = `BEST: ${highScore}`;
+            document.getElementById('game-over-screen').style.display = 'flex';
+            document.getElementById('state-val').innerText = 'GAME_OVER';
+            logEvent(`GAME OVER: Final Score = ${score}`, 'event');
+        }
+
+        // Game Loop
+        function update(time = 0) {
+            const delta = time - lastTime;
+            lastTime = time;
+
+            if (isPlaying && !isGameOver && !isRotating) {
+                dropCounter += delta;
+                dropInterval = Math.max(150, 800 - Math.floor(score / 500) * 50);
+                document.getElementById('speed-val').innerText = `${dropInterval} ms`;
+
+                if (dropCounter >= dropInterval) {
+                    drop();
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Keyboard Controls
+        document.addEventListener('keydown', e => {
+            if (!isPlaying) return;
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') movePiece(-1);
+            else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') movePiece(1);
+            else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') drop();
+            else if (e.key === ' ') { e.preventDefault(); triggerHardDrop(); }
+            else if (e.key === 'q' || e.key === 'Q') rotateWorld('ccw');
+            else if (e.key === 'e' || e.key === 'E') rotateWorld('cw');
+        });
+
+        // Mouse / Touch Controls on Display Screen
+        const screen = document.getElementById('screen');
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let hasMoved = false;
+
+        screen.addEventListener('mousedown', e => {
+            if (!isPlaying) return;
+            touchStartX = e.clientX;
+            touchStartY = e.clientY;
+            hasMoved = false;
+        });
+
+        screen.addEventListener('mousemove', e => {
+            if (!isPlaying || touchStartX === 0) return;
+            let dx = e.clientX - touchStartX;
+            let dy = e.clientY - touchStartY;
+
+            if (Math.abs(dx) >= 18) {
+                movePiece(dx > 0 ? 1 : -1);
+                touchStartX = e.clientX;
+                hasMoved = true;
+            }
+
+            if (dy >= 28) {
+                drop();
+                touchStartY = e.clientY;
+                hasMoved = true;
+            }
+        });
+
+        screen.addEventListener('mouseup', e => {
+            if (!isPlaying || touchStartX === 0) return;
+            if (!hasMoved) {
+                const rect = screen.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                if (clickX < rect.width / 2) {
+                    rotateWorld('ccw');
+                } else {
+                    rotateWorld('cw');
+                }
+            }
+            touchStartX = 0;
+            touchStartY = 0;
+        });
+
+        // Initialize Emulator
+        board = createEmptyBoard();
+        drawBackground();
+        requestAnimationFrame(update);
+    </script>
+</body>
+</html>

@@ -102,11 +102,6 @@ void drawArcadeHub() {
     Display.drawRect(btn2X + 1, btn2Y + 1, 80, 130, 0xFFFF);
     Display.drawString(btn2X + 18, btn2Y + 40, "PLAY", 0x0000, COLOR_TEXT_GREEN, 2);
     Display.drawString(btn2X + 32, btn2Y + 68, ">", 0x0000, COLOR_TEXT_GREEN, 3);
-
-    // =========================================================================
-    // Footer
-    // =========================================================================
-    Display.drawCenteredString(412, "TAP CARD OR BUTTON TO LAUNCH", COLOR_TEXT_GRAY, COLOR_BG, 1);
 }
 
 void setup() {

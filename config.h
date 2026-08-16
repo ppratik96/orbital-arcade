@@ -86,3 +86,13 @@ enum Difficulty {
 #define COLOR_TEXT_RED    0xF800  // Red text
 #define COLOR_TEXT_AMBER  0xFBE0  // Amber text
 #define COLOR_TEXT_GRAY   0x8C71  // Gray text
+
+// Game Piece & Element Colors
+#define COLOR_CYAN        0x07FF  // Bright Cyan Tetromino
+#define COLOR_AMBER       0xFDE0  // Bright Amber Tetromino
+#define COLOR_GREEN       0x07E0  // Bright Green
+#define COLOR_SNAKE_HEAD  0x07E0  // Emerald Neon Green
+#define COLOR_SNAKE_BODY  0x04E0  // Forest Green
+#define COLOR_SNAKE_FOOD  0xFDE0  // Gold Energy Orb
+#define COLOR_SNAKE_BONUS 0xF81F  // Magenta Bonus Core
+

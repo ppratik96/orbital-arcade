@@ -4,11 +4,21 @@
 
 SnakeEngine Snake;
 
+#ifndef COLOR_SNAKE_HEAD
 #define COLOR_SNAKE_HEAD   0x07FF  // Vibrant Electric Cyan
+#endif
+#ifndef COLOR_SNAKE_BODY
 #define COLOR_SNAKE_BODY   0x07E0  // Neon Green
+#endif
+#ifndef COLOR_SNAKE_TAIL
 #define COLOR_SNAKE_TAIL   0x05E0  // Emerald Green
+#endif
+#ifndef COLOR_SNAKE_FOOD
 #define COLOR_SNAKE_FOOD   0xFFE0  // Glowing Gold Energy Orb
+#endif
+#ifndef COLOR_SNAKE_BONUS
 #define COLOR_SNAKE_BONUS  0xF81F  // Magenta Bonus Core
+#endif
 #define COLOR_SNAKE_GRID   0x1904  // Subtle arena grid
 #define COLOR_SNAKE_BORDER 0x07E0  // Neon Green Cyber Border
 

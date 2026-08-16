@@ -46,6 +46,7 @@ public:
     void renderDynamic();
     void redrawBoard();
     void drawPlayfieldBackground();
+    void drawCoreBox();
     void drawHUD();
     void drawGameOverScreen();
     void drawStartScreen();

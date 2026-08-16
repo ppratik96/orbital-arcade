@@ -444,6 +444,31 @@ void GameEngine::showStartScreen() {
     drawStartScreen();
 }
 
+void GameEngine::drawCoreBox() {
+    int16_t startX = PLAYFIELD_X;
+    int16_t startY = PLAYFIELD_Y;
+    int16_t coreX = startX + (5 * BLOCK_SIZE);
+    int16_t coreY = startY + (5 * BLOCK_SIZE);
+    int16_t coreSize = 3 * BLOCK_SIZE; // 78 px
+
+    // 1. Fill solid core background plate
+    Display.fillRect(coreX, coreY, coreSize, coreSize, COLOR_CORE_FILL);
+
+    // 2. Interior 3x3 grid lines
+    for (int r = 5; r <= 7; r++) {
+        for (int c = 5; c <= 7; c++) {
+            int16_t px = startX + (c * BLOCK_SIZE);
+            int16_t py = startY + (r * BLOCK_SIZE);
+            Display.drawRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_CORE_GRID);
+        }
+    }
+
+    // 3. Thick 3px Outer Neon Cyan Border (all 4 corners and full perimeter)
+    Display.drawRect(coreX - 1, coreY - 1, coreSize + 2, coreSize + 2, COLOR_CORE_BORDER);
+    Display.drawRect(coreX, coreY, coreSize, coreSize, COLOR_CORE_BORDER);
+    Display.drawRect(coreX + 1, coreY + 1, coreSize - 2, coreSize - 2, COLOR_CORE_BORDER);
+}
+
 void GameEngine::drawCountdownDigit(const char *digit, uint16_t color) {
     int16_t coreX = PLAYFIELD_X + (5 * BLOCK_SIZE);
     int16_t coreY = PLAYFIELD_Y + (5 * BLOCK_SIZE);
@@ -457,22 +482,7 @@ void GameEngine::drawCountdownDigit(const char *digit, uint16_t color) {
 }
 
 void GameEngine::clearCountdownBox() {
-    int16_t startX = PLAYFIELD_X;
-    int16_t startY = PLAYFIELD_Y;
-    int16_t coreX = startX + (5 * BLOCK_SIZE);
-    int16_t coreY = startY + (5 * BLOCK_SIZE);
-    int16_t coreSize = 3 * BLOCK_SIZE;
-
-    Display.fillRect(coreX, coreY, coreSize, coreSize, COLOR_CORE_FILL);
-    for (int r = 5; r <= 7; r++) {
-        for (int c = 5; c <= 7; c++) {
-            int16_t px = startX + (c * BLOCK_SIZE);
-            int16_t py = startY + (r * BLOCK_SIZE);
-            Display.drawRect(px, py, BLOCK_SIZE, BLOCK_SIZE, COLOR_CORE_GRID);
-        }
-    }
-    Display.drawRect(coreX, coreY, coreSize, coreSize, COLOR_CORE_BORDER);
-    Display.drawRect(coreX + 1, coreY + 1, coreSize - 2, coreSize - 2, COLOR_CORE_BORDER);
+    drawCoreBox();
 }
 
 void GameEngine::resetGame() {
@@ -596,11 +606,25 @@ void GameEngine::eraseTile(int8_t r, int8_t c) {
     if (c == 9 && (r < 3 || r > 9)) Display.fillRect(px + BLOCK_SIZE - 2, py, 2, BLOCK_SIZE, COLOR_WALL_BORDER);
     if (c == 10 && (r < 3 || r > 9)) Display.fillRect(px, py, 2, BLOCK_SIZE, COLOR_WALL_BORDER);
 
-    // Repair 3x3 Central Core Box Perimeter Borders (rows 5..7, cols 5..7)
-    if (r == 5 && c >= 5 && c <= 7) Display.fillRect(px, py, BLOCK_SIZE, 2, COLOR_CORE_BORDER);
-    if (r == 7 && c >= 5 && c <= 7) Display.fillRect(px, py + BLOCK_SIZE - 2, BLOCK_SIZE, 2, COLOR_CORE_BORDER);
-    if (c == 5 && r >= 5 && r <= 7) Display.fillRect(px, py, 2, BLOCK_SIZE, COLOR_CORE_BORDER);
-    if (c == 7 && r >= 5 && r <= 7) Display.fillRect(px + BLOCK_SIZE - 2, py, 2, BLOCK_SIZE, COLOR_CORE_BORDER);
+    // Repair 3x3 Central Core Box Perimeter Borders & All 4 Vertices
+    if (r == 4 && c >= 5 && c <= 7) Display.fillRect(px, py + BLOCK_SIZE - 2, BLOCK_SIZE, 3, COLOR_CORE_BORDER);
+    if (r == 5 && c >= 5 && c <= 7) Display.fillRect(px, py - 1, BLOCK_SIZE, 3, COLOR_CORE_BORDER);
+    if (r == 7 && c >= 5 && c <= 7) Display.fillRect(px, py + BLOCK_SIZE - 2, BLOCK_SIZE, 3, COLOR_CORE_BORDER);
+    if (r == 8 && c >= 5 && c <= 7) Display.fillRect(px, py - 1, BLOCK_SIZE, 3, COLOR_CORE_BORDER);
+
+    if (c == 4 && r >= 5 && r <= 7) Display.fillRect(px + BLOCK_SIZE - 2, py, 3, BLOCK_SIZE, COLOR_CORE_BORDER);
+    if (c == 5 && r >= 5 && r <= 7) Display.fillRect(px - 1, py, 3, BLOCK_SIZE, COLOR_CORE_BORDER);
+    if (c == 7 && r >= 5 && r <= 7) Display.fillRect(px + BLOCK_SIZE - 2, py, 3, BLOCK_SIZE, COLOR_CORE_BORDER);
+    if (c == 8 && r >= 5 && r <= 7) Display.fillRect(px - 1, py, 3, BLOCK_SIZE, COLOR_CORE_BORDER);
+
+    // Repair all 4 corner vertices
+    int16_t coreX = PLAYFIELD_X + (5 * BLOCK_SIZE);
+    int16_t coreY = PLAYFIELD_Y + (5 * BLOCK_SIZE);
+    int16_t coreSize = 3 * BLOCK_SIZE;
+    if ((r == 4 || r == 5) && (c == 4 || c == 5)) Display.fillRect(coreX - 1, coreY - 1, 3, 3, COLOR_CORE_BORDER);
+    if ((r == 4 || r == 5) && (c == 7 || c == 8)) Display.fillRect(coreX + coreSize - 2, coreY - 1, 3, 3, COLOR_CORE_BORDER);
+    if ((r == 7 || r == 8) && (c == 4 || c == 5)) Display.fillRect(coreX - 1, coreY + coreSize - 2, 3, 3, COLOR_CORE_BORDER);
+    if ((r == 7 || r == 8) && (c == 7 || c == 8)) Display.fillRect(coreX + coreSize - 2, coreY + coreSize - 2, 3, 3, COLOR_CORE_BORDER);
 }
 
 void GameEngine::drawPlayfieldBackground() {
@@ -611,14 +635,17 @@ void GameEngine::drawPlayfieldBackground() {
     // 1. Fill entire arena black
     Display.fillRect(startX, startY, totalSize, totalSize, COLOR_BG);
 
-    // 2. Render all 13x13 grid tiles, corner walls, borders, and center core using unified eraseTile pipeline
+    // 2. Render all 13x13 grid tiles, corner walls, borders
     for (int r = 0; r < GRID_ROWS; r++) {
         for (int c = 0; c < GRID_COLS; c++) {
             eraseTile(r, c);
         }
     }
 
-    // 3. Outer Cyan Border enclosing the entire playfield (3px thick)
+    // 3. Render complete solid central core box with all 4 corners
+    drawCoreBox();
+
+    // 4. Outer Cyan Border enclosing the entire playfield (3px thick)
     Display.drawRect(startX - 2, startY - 2, totalSize + 4, totalSize + 4, COLOR_WALL_BORDER);
     Display.drawRect(startX - 1, startY - 1, totalSize + 2, totalSize + 2, COLOR_WALL_BORDER);
     Display.drawRect(startX, startY, totalSize, totalSize, COLOR_WALL_BORDER);

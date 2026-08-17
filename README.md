@@ -76,7 +76,7 @@ A gyro-steered arcade snake game:
    - **PSRAM**: OPI PSRAM
    - **USB CDC On Boot**: Enabled
    - **Partition Scheme**: 16MB Flash (3MB APP / 9MB FAT)
-4. Open `orbital-tetris.ino` and click **Upload**.
+4. Open `orbital-arcade.ino` and click **Upload**.
 
 ### Option C: PlatformIO
 ```bash
